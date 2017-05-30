@@ -68,10 +68,9 @@ module.exports = (buf, opts) => {
 			if (opts.out === 'jpg') {
 				return encodeJpeg(buf, opts);
 			} else if (opts.out === 'png') {
-				return encodePng(buf,opts);
-			} else {
-				return encodeBmp(buf, opts);
+				return encodePng(buf, opts);
 			}
+			return encodeBmp(buf, opts);
 		});
 	}
 
@@ -83,9 +82,8 @@ module.exports = (buf, opts) => {
 				return encodePng(buf, opts);
 			} else if (opts.out === 'bmp') {
 				return encodeBmp(buf, opts);
-			} else {
-				return encodeJpeg(buf, opts);
 			}
+			return encodeJpeg(buf, opts);
 		});
 	}
 
@@ -94,11 +92,10 @@ module.exports = (buf, opts) => {
 			return encodeJpeg(buf, opts);
 		} else if (opts.out === 'bmp') {
 			return encodeBmp(buf, opts);
-		} else {
-			img.width = opts.width;
-			img.height = opts.height;
-			img.data = Buffer.isBuffer(buf) ? buf : Buffer.from(buf);
-			return getStream.buffer(img.pack());
 		}
+		img.width = opts.width;
+		img.height = opts.height;
+		img.data = Buffer.isBuffer(buf) ? buf : Buffer.from(buf);
+		return getStream.buffer(img.pack());
 	}));
 };
