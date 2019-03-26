@@ -4,6 +4,7 @@ const fileType = require('file-type');
 const getStream = require('get-stream');
 const jpeg = require('jpeg-js');
 const parsePng = require('parse-png');
+const PNG = require('pngjs').PNG;
 const Resize = require('jimp/resize');
 
 const resize = (img, opts) => {
@@ -38,27 +39,60 @@ module.exports = (buf, opts) => {
 		return Promise.reject(new Error('You need to set either width or height'));
 	}
 
-	if (type.ext === 'bmp') {
-		const img = bmp.decode(buf);
-
-		return resize(img, opts).then(buf => bmp.encode({
+	const encodeJpeg = (buf, opts) => {
+		return jpeg.encode({
 			width: opts.width,
 			height: opts.height,
 			data: buf
-		}).data);
+		}).data;
+	};
+
+	const encodePng = (buf, opts) => {
+		const png = new PNG({width: opts.width, height: opts.height, filterType: -1});
+		png.data = buf;
+		return getStream.buffer(png.pack());
+	};
+
+	const encodeBmp = (buf, opts) => {
+		return bmp.encode({
+			width: opts.width,
+			height: opts.height,
+			data: buf
+		}).data;
+	};
+
+	if (type.ext === 'bmp') {
+		const img = bmp.decode(buf);
+
+		return resize(img, opts).then(buf => {
+			if (opts.out === 'jpg') {
+				return encodeJpeg(buf, opts);
+			} else if (opts.out === 'png') {
+				return encodePng(buf, opts);
+			}
+			return encodeBmp(buf, opts);
+		});
 	}
 
 	if (type.ext === 'jpg') {
 		const img = jpeg.decode(buf);
 
-		return resize(img, opts).then(buf => jpeg.encode({
-			width: opts.width,
-			height: opts.height,
-			data: buf
-		}).data);
+		return resize(img, opts).then(buf => {
+			if (opts.out === 'png') {
+				return encodePng(buf, opts);
+			} else if (opts.out === 'bmp') {
+				return encodeBmp(buf, opts);
+			}
+			return encodeJpeg(buf, opts);
+		});
 	}
 
 	return parsePng(buf).then(img => resize(img, opts).then(buf => {
+		if (opts.out === 'jpg') {
+			return encodeJpeg(buf, opts);
+		} else if (opts.out === 'bmp') {
+			return encodeBmp(buf, opts);
+		}
 		img.width = opts.width;
 		img.height = opts.height;
 		img.data = Buffer.isBuffer(buf) ? buf : Buffer.from(buf);
